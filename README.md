@@ -8,599 +8,165 @@ This is a primative multi-agent modular initialization capability test prototype
 
 The notion of strict modularity such that different MCP interoperable system could be created and operated by totally different teams or even different companies is potentially a key unlock for MCP and for LLM based agents to take off and be scalable and more fully userful.  This is described more fully in the project overview for "Agent" here: [https://github.com/dazzaji/mcp-project/issues/1](https://github.com/dazzaji/mcp-project/issues/1). 
 
-## Try it!
+# Let's Run the Project!
 
-Let's get your MCP project running in VS Code with the Inspector and Claude Desktop.
+(Based on continuing periodic issues, I've further documented below how best to run and use this project based on the various obstacles that have popped up.  Note that the file paths should be updated to your machine and I hard-coded the version of Python I'm using to deal with countless issues pointing to the right version and maintaining the link to it.)
 
-**1. Running in VS Code with MCP Inspector**
+Okay, let's get the `mcp-agent-router` project running with Claude Desktop and the MCP Inspector. Here's a step-by-step guide that addresses your specific concerns, using `uv` as requested and focusing on understanding how to integrate Claude Desktop and use the Inspector for troubleshooting.
 
-Here's how to run your project in VS Code and inspect the communication using MCP Inspector:
+**1. Project Setup with `uv`**
 
-* **Install the `mcp` package:**  In your project root (`mcp-project`), ensure you have installed the MCP package in your active virtual environment:
+First, ensure your project environment is correctly set up with `uv`.
 
-```bash
-uv add mcp
-```
-
-* **Set up `launch.json`**: You'll need launch configurations for each of your MCP servers.  Since you're simulating "black boxes" that *might* run different underlying technologies, the launch configuration will vary for the Gemini server.  Create a `.vscode/launch.json` file in your project's root directory with the following configurations.  This assumes the gemini-server takes a `model` parameter, which specifies the model to use.
-
-```json
-{
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Module 1 Server",
-            "type": "python",
-            "request": "launch",
-            "module": "module1_server.server", // Use module mode for direct execution
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "Gemini Server",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/gemini-server/server.py",
-            "args": ["--model", "gemini-pro"], // Example model argument
-            "console": "integratedTerminal"
-        }
-    ]
-}
-```
-
-*   **Running the servers:**
-    *   Open the `module1-server/server.py` file in VS Code.
-    *   Start the debugger by pressing `F5` or selecting "Start Debugging" from the "Run" menu, and choose the `Module 1 Server` configuration. This will start the Module 1 server in the VS Code integrated terminal. In a similar way, start the `Gemini Server` in a separate terminal.
-    *   In a new terminal at the root of your project, start the gateway agent with `uv run gateway_agent`.
-
-
-*   **Start MCP Inspector:**
-    *   Open a *new* terminal in the `gateway-agent` directory.
-    *   Run the following command:
-
-    ```bash
-    npx @modelcontextprotocol/inspector python -m gateway_agent
-    ```
-    *   This starts the MCP Inspector, which automatically launches the gateway-agent server and the Inspector UI. A URL will be printed in the terminal. Open this URL in your browser to access the UI.
-
-    *   In the Inspector UI, click on "Tools" to confirm the tools your gateway agent has registered.
-
-Now you can interact with the servers through the MCP Inspector UI, sending requests and viewing responses and logs. The logging messages from your `service.py` file will appear in the Inspector's console, which can be useful for debugging.  You can test the routing functionality by calling the `route_task` tool with different inputs and observing which downstream server is called.
-
-
-
-**2. Running with Claude Desktop**
-
-To use your MCP servers with Claude Desktop:
-
-*   **Install your servers** into your local environment or a Docker container. If you use Docker make sure both the gateway agent and servers A and B are all accessible on the same Docker network.
-*   **Configure `claude_desktop_config.json`:**
-
-    *   Locate your `claude_desktop_config.json` file (the path depends on your operating system; consult the MCP docs for details).
-
-    *   Add configurations for your *gateway-agent* server under the `mcpServers` key. Since your gateway agent now uses HTTP/SSE, you will need to specify the URL accordingly.
-
-        ```json
-        {
-          "mcpServers": {
-            "gateway-agent": {
-              "url": "http://localhost:8000/mcp/v1" // Replace with gateway agent url
-            },
-            "server-a": {
-              "url": "http://localhost:5000/mcp/v1" // Replace with Server A url
-            },
-              "server-b": {
-              "url": "http://localhost:5001/mcp/v1" // Replace with Server B url
-            }
-          }
-        }
-        ```
-
-        Make sure the port numbers match the ports your servers are listening on.  Replace `/mcp/v1` with the actual endpoint if it's different.  Make sure to add server B analogous to server A, and start it on a different port. 
-
-*   **Restart Claude Desktop:** For the changes in your `claude_desktop_config.json` file to take effect, you need to restart Claude Desktop.
-
-Now you should be able to interact with your gateway agent via Claude's slash commands or other UI elements provided by Claude Desktop to use MCP tools. You can test the routing by entering queries that should be directed to different servers.
-
-With these steps, you should be able to run your MCP project, inspect server communications with the Inspector, and integrate your gateway agent with Claude Desktop! Let me know if you encounter any issues, and I'll help troubleshoot.
-
-
-------
-
-# Use Inspector to See What is Happening Under the Hood
-
-Okay, here's a step-by-step guide to run your project and inspect the MCP traffic using the Inspector. We'll use Docker Compose to simplify the process since you have Dockerfiles. This approach ensures consistent environment setup and easier management of multiple services.
-
-**Prerequisites:**
-
-1.  **Docker Desktop:** Make sure you have Docker Desktop installed and running.
-2.  **Docker Compose:** Verify Docker Compose is installed. You can check with `docker compose version`. If not, install it according to the instructions for your OS.
-3.  **MCP Inspector:** Ensure MCP Inspector is installed globally: `npm install -g @modelcontextprotocol/inspector`
-4. **Anthropic API Key:** You'll need a valid Anthropic API key for both Server A and Server B (as they use Claude). Set this in an `.env` file in both the `server-a` and `server-b` directories. Note that your `.gitignore` is set up correctly to ignore `.env` files.
-5. **Gemini API Key:** Similarly set up the `GEMINI_API_KEY` for the Gemini server in an `.env` file in the root of the project
-
-**Steps:**
-
-1. **Prepare Server A and Server B:**
-
-* **User Profile Data:** Create a `user_profile.json` file in both `server-a` and `server-b` with the user profile information you provided for each (health and professional profiles, respectively). Format this data as JSON. 
-
-Here's how those files should be structured: 
-
-`server-a/user_profile.json`:
-
-```json
-{
-  "name": "John Doey",
-  "date_of_birth": "August 15, 1997",
-  "gender": "Male",
-  "height": "5'8\"",
-  "weight": "150 lbs",
-  "bmi": 22.7,
-  "body_fat_percentage": 23.5,
-  "muscle_mass": "64.6 lbs",
-  "bone_mass": "7.1 lbs",
-  "last_measured_body_composition": "December 1, 2024",
-  "blood_pressure": "118/75 mmHg",
-  "heart_rate": 68,
-  "respiratory_rate": 14,
-  "last_measured_vital_signs": "December 9, 2024",
-  "weight_management_target": "150 lbs",
-  "weight_management_deadline": "June 30, 2025",
-  "weight_management_type": "Maintenance",
-  "daily_steps": 8000,
-  "weekly_exercise": "150 minutes",
-  "weekly_workouts": 3,
-  "daily_caloric_target": 2200,
-  "macronutrient_breakdown": {
-    "protein": "2.8 oz (80g)",
-    "carbohydrates": "8.8 oz (250g)",
-    "fats": "2.6 oz (73g)"
-  },
-  "current_conditions": [
-    {
-      "name": "Computer Vision Syndrome",
-      "diagnosed": "September 15, 2023",
-      "status": "Active",
-      "medications": null
-    },
-    {
-      "name": "Mild Anxiety",
-      "diagnosed": "March 20, 2023",
-      "status": "Active",
-      "treatment": {
-        "type": "Meditation App Subscription",
-        "duration": "15 minutes",
-        "frequency": "Daily",
-        "started": "March 25, 2023",
-        "ongoing": true
-      }
-    }
-  ],
-  "allergies": [
-    {
-      "name": "Tree Pollen",
-      "severity": "Mild",
-      "symptoms": ["Sneezing", "Itchy eyes"]
-    }
-  ],
-  "family_history": {
-    "type_2_diabetes": "Paternal grandfather",
-    "hypertension": "Maternal grandmother"
-  },
-  "preferences": {
-    "measurement_system": "Imperial",
-    "dietary_restrictions": ["Vegetarian", "Low-caffeine"],
-    "exercise_preferences": ["Yoga", "Running", "Home workouts"],
-    "reminders": true,
-    "progress_updates": true,
-    "health_tips": true
-  },
-  "last_updated": "December 10, 2024"
-}
-```
-
-`server-b/user_profile.json`:
-
-```json
-{
-  "name": "John Doey",
-  "user_id": "JP_AI_2024",
-  "current_role": "Machine Learning Engineer II",
-  "industry": "Artificial Intelligence",
-  "years_of_experience": 2,
-  "preferred_work_style": "Hybrid",
-  "current_position": {
-    "title": "Machine Learning Engineer II",
-    "band": "IC2",
-    "start_date": "January 15, 2024"
-  },
-  "technical_skills": [
-    {
-      "name": "PyTorch",
-      "proficiency": "Advanced",
-      "last_used": "December 9, 2024"
-    },
-    {
-      "name": "LLM Fine-tuning",
-      "proficiency": "Intermediate",
-      "last_used": "December 9, 2024"
-    },
-    {
-      "name": "MLOps",
-      "proficiency": "Intermediate",
-      "last_used": "December 8, 2024"
-    }
-  ],
-  "soft_skills": [
-    {
-      "name": "Technical Communication",
-      "self_assessment": 8,
-      "last_assessed": "November 30, 2024"
-    },
-    {
-      "name": "Project Management",
-      "self_assessment": 7,
-      "last_assessed": "November 30, 2024"
-    }
-  ],
-  "time_management": {
-    "preferred_hours": "9:30 AM - 6:30 PM (PST)",
-    "focus_time_blocks": {
-      "morning": "120-minute block"
-    }
-  },
-  "meeting_preferences": {
-    "maximum_daily_meetings": 4,
-    "preferred_duration": "30 minutes",
-    "buffer_time": "15 minutes"
-  },
-  "professional_goals": {
-    "short_term_objectives": [
-      {
-        "name": "LLM Evaluation Framework Project",
-        "role": "Project Lead",
-        "target_date": "March 30, 2025",
-        "status": "In Progress",
-        "type": "Project"
-      },
-      {
-        "name": "MLOps Certification",
-        "target_date": "February 28, 2025",
-        "status": "In Progress",
-        "type": "Certification"
-      }
-    ],
-    "long_term_objectives": {
-      "primary_goal": "Senior ML Engineer Role",
-      "target_year": 2026,
-      "key_milestones": [
-        "Lead 2 major technical initiatives (Due: December 31, 2025)",
-        "Develop team mentorship experience",
-        "Establish technical thought leadership"
-      ]
-    }
-  },
-    "development_activities": {
-    "current_projects": [
-      {
-        "name": "LLM Evaluation Framework",
-        "role": "Technical Lead",
-        "skills": ["ML Architecture", "Team Leadership"],
-        "visibility": "Company-wide"
-      },
-      {
-        "name": "Model Optimization Initiative",
-        "role": "Individual Contributor",
-        "skills": ["Performance Tuning", "MLOps"],
-        "visibility": "Department"
-      }
-    ],
-    "training_programs": [
-      {
-        "name": "MLOps Certification Program",
-        "provider": "Major Cloud Provider",
-        "status": "In Progress",
-        "expected_completion": "Q1 2025"
-      },
-      {
-        "name": "Technical Leadership Workshop",
-        "provider": "Internal L&D",
-        "status": "Planned",
-        "start_date": "January 2025"
-      }
-    ]
-  },
-  "learning_and_growth": {
-    "areas_of_focus": {
-      "technical": ["Large Language Models", "Distributed Systems", "ML Infrastructure"],
-      "leadership": ["Team Management", "Technical Project Planning", "Stakeholder Communication"]
-    },
-    "resources": [
-      "Internal ML Engineering Wiki",
-      "Technical Conference Presentations",
-      "Industry Research Papers",
-      "Team Knowledge Sharing Sessions"
-    ]
-  },
-  "professional_network_development": {
-    "current_activities": [
-      "Regular 1:1s with Senior Engineers",
-      "Monthly ML Community Meetups",
-      "Internal Tech Talks Participant",
-      "Open Source Contributions"
-    ],
-    "mentorship": {
-      "seeking_in": ["Technical Leadership", "Project Management"],
-      "providing_in": ["PyTorch", "LLM Implementation"]
-    }
-  },
-  "preferences": {
-    "learning_style": ["Hands-on Implementation", "Documentation Creation", "Collaborative Problem-solving"],
-    "growth_areas": ["System Architecture Design", "Team Leadership", "Technical Writing"],
-    "goal_reminders": true,
-    "networking_opportunities": true,
-    "learning_recommendations": true
-  },
-  "last_updated": "December 10, 2024"
-}
-```
-
-
-
-* **Install Dependencies:** Make sure all the servers have the needed dependencies:
-
-  ```bash
-  cd server-a
-  pip install -r requirements.txt # Install dependencies for server-a
-  cd ../server-b
-  pip install -r requirements.txt # Install dependencies for server-b
-  cd ../gateway-agent
-  pip install -r requirements.txt # Install dependencies for gateway-agent
-  cd ../gemini-server
-  pip install -r requirements.txt # Install dependencies for gemini-server
-  cd .. # Go back to root
-  ```
-  Make sure to create `requirements.txt` files in each directory, containing the libraries each uses. The root `requirements.txt` can include `mcp`.  A simple way to create these files is by activating the relevant virtual environment, then using `pip freeze > requirements.txt` in each project directory.
-
-2. **Define the Docker Network (Optional but recommended):** If you're not using host network mode, you need to create the docker network in the `docker-compose.yaml` file, so that the gateway agent can discover and communicate with Server A and Server B. Here's how:
-
-```yaml
-services:
-  # ... (your service definitions)
-
-networks:
-  mcp-network: # Give your network a name
-
-```
-
-Then add the network to each of the Docker container specifications:
-
-```yaml
-services:
-  gateway-agent:
-    # ... other settings
-    networks:
-      - mcp-network
-
-  server-a:
-    # ... other settings
-    networks:
-      - mcp-network
-
-  server-b:  # Added server-b
-    # ... similar to server-a
-    networks:
-      - mcp-network
-```
-
-3.  **Run with Docker Compose:** In your project root, run:
-
-    ```bash
-    docker compose up --build
-    ```
-
-    This builds and starts all servers in the background with appropriate port mapping and shared volume.  Now you should have all the components (servers, shared volume) set up in Docker containers. This is generally a more reliable approach for consistent execution since you also provided Dockerfiles.
-
-4.  **Connect with MCP Inspector:** In a new terminal, run:
-
-    ```bash
-    npx @modelcontextprotocol/inspector http://gateway-agent:8000/mcp/v1 # Note the protocol is now http
-    ```
-
-
-This will connect the inspector to the gateway-agent and present a URL for you to access the inspector UI. From the UI, you should be able to call tools exposed by gateway agent, which will in turn route requests to the appropriate downstream servers.  The debug=True parameters we set earlier will help to pinpoint where issues are arising.  Make sure that servers A and B are accessible on port 5000 and 5001 on your local machine, respectively (but you may need to change ports if there are conflicts).  If you use Docker and don't expose these ports on host network (via the `ports` configuration in docker-compose), you'll need to attach to the network the containers create with the following command so that the DNS entries for the services are present: `docker network connect <networkname> <containername>`
-
--------------------
-
-# Running the Project 
-
-(replace paths with correct paths on your machine)
-
-Certainly! Below is a comprehensive **cheat-sheet** capturing all the steps needed to set up and run the `mcp-agent-router` project successfully, taking into account everything we learned during troubleshooting:
-
----
-
-# **MCP-Agent-Router Project Setup and Execution Cheat-Sheet**
-
-## **1. Initial Setup**
-### **Step 1: Clone the Repository**
-If you haven’t already cloned the project:
-```bash
-git clone <repository-url>
-cd mcp-agent-router
-```
-
----
-
-### **Step 2: Set Up the Python Virtual Environment**
-1. Remove any conflicting virtual environments if they exist:
    ```bash
+   # Clone the repository if you haven't already
+   git clone <repository-url>
+   cd mcp-agent-router
+
+   # Remove existing virtual environments if any
    rm -rf .venv venv
-   ```
 
-2. Create a new virtual environment using Python 3.11:
-   ```bash
+   # Create a new virtual environment with Python 3.11
    /Library/Frameworks/Python.framework/Versions/3.11/bin/python3.11 -m venv ./venv
-   ```
-
-3. Link `venv` to `.venv` to satisfy tools like `uv`:
-   ```bash
+  
+   # Link venv to .venv for uv
    ln -s venv .venv
-   ```
-
-4. Activate the virtual environment:
-   ```bash
+  
+   # Activate the virtual environment
    source ./venv/bin/activate
-   ```
-
-5. Confirm the Python version:
-   ```bash
+  
+   # Confirm Python version
    python --version
+   # Expected output is: Python 3.11.x
+  
+   # Install necessary dependencies using uv
+   uv pip install flask anthropic requests python-dotenv mcp
+  
+   # Update the python version
+   echo "3.11" > .python-version
    ```
-   The output should be:
-   ```
-   Python 3.11.1
-   ```
+   
+   **Explanation:**
+   *   We're creating the virtual environment using Python 3.11, which you specified in the `.python-version` file.
+   *   The symbolic link `ln -s venv .venv` is used to make `uv` correctly recognize the virtual environment.
+   *   `uv pip install` installs required packages.
 
-6. Install the required dependencies:
-   ```bash
-   pip install flask anthropic requests python-dotenv uv mcp
-   ```
+**2. Start the MCP Servers and Gateway Agent**
 
----
+Next, we'll start each of your three "black box" servers and the gateway agent in separate terminals.
 
-### **Step 3: Configure `.python-version`**
-If the project contains a `.python-version` file, ensure it matches Python 3.11:
-```bash
-echo "3.11" > .python-version
-```
-
----
-
-## **2. Running the Project**
-
-### **Step 4: Start Server A**
-1. Open a new terminal tab or window in VS Code.
-2. Activate the virtual environment:
-   ```bash
-   source ./venv/bin/activate
-   ```
-3. Navigate to the `server-a` directory:
+   **Terminal 1: Server A (Personal Trainer)**
    ```bash
    cd server-a
-   ```
-4. Run the server:
-   ```bash
+   source ../venv/bin/activate
    python server.py
    ```
 
----
-
-### **Step 5: Start Server B**
-1. Open another terminal tab or window.
-2. Activate the virtual environment:
+   **Terminal 2: Server B (Work Assistant)**
    ```bash
-   source ./venv/bin/activate
-   ```
-3. Navigate to the `server-b` directory:
-   ```bash
-   cd server-b
-   ```
-4. Run the server:
-   ```bash
+   cd ../server-b
+   source ../venv/bin/activate
    python server.py
    ```
 
----
-
-### **Step 6: Start the Gateway**
-1. Open another terminal tab or window.
-2. Ensure the virtual environment is active:
+   **Terminal 3: Gateway Agent**
    ```bash
-   source ./venv/bin/activate
-   ```
-3. Run the gateway:
-   ```bash
-   uv run /Users/dazzagreenwood/mcp-agent-router/gateway-agent/service.py
+   cd ../gateway-agent
+   source ../venv/bin/activate
+    uv run service.py
    ```
 
----
+   **Explanation:**
+   *   Each server and the gateway agent are started in their respective directories within your project.
+   *   We use `source ../venv/bin/activate` to ensure each uses the same virtual environment.
+   *   This step assumes that servers A and B have a `server.py` file with basic MCP server implementation. It also assumes the `gateway-agent` has a `service.py` file to run with `uv`.
 
-## **3. Testing and Verification**
+**3. Configure Claude Desktop**
 
-### **Step 7: Verify the Setup**
-1. **Check Each Server**:
-   - Confirm that `server-a`, `server-b`, and the gateway server are running without errors.
-   - Each server should be displaying logs or listening for requests.
+Now, let's configure Claude Desktop to recognize your gateway agent and servers. Here’s how your `claude_desktop_config.json` should be structured, assuming `server-a`, `server-b`, and the `gateway-agent` are on ports 5010, 5001 and 8000 respectively:
 
-2. **Test with the Client (if applicable)**:
-   If the project includes a client like **Claude Desktop**, connect it to the gateway:
-   - Edit the `claude_desktop_config.json` file to include:
-     ```json
-     {
-       "mcpServers": {
-         "gateway": {
-           "command": "uv",
-           "args": ["run", "/Users/dazzagreenwood/mcp-agent-router/gateway-agent/service.py"]
+   ```json
+   {
+      "mcpServers": {
+         "gateway-agent": {
+            "url": "http://localhost:8000/mcp/v1"
+         },
+         "server-a": {
+           "url": "http://localhost:5010/mcp/v1"
+         },
+         "server-b": {
+            "url": "http://localhost:5001/mcp/v1"
          }
-       }
-     }
-     ```
-   - Restart Claude Desktop.
-   - Test the client by interacting with the connected servers.
-
----
-
-## **4. Troubleshooting Tips**
-### **If `uv` Uses the Wrong Python Version:**
-1. Ensure `.venv` is linked to `venv`:
-   ```bash
-   ln -s venv .venv
-   ```
-2. Ensure the `VIRTUAL_ENV` variable points to the correct environment:
-   ```bash
-   export VIRTUAL_ENV=$(pwd)/venv
+      }
+   }
    ```
 
----
+   **Explanation:**
+   *   Locate the `claude_desktop_config.json` file in your system (its path can vary depending on your OS). Refer to the MCP docs for OS specific location of the file.
+   *   The `mcpServers` object now contains configurations for each server, including the `gateway-agent`, `server-a` and `server-b`.. Make sure these URL paths match the actual endpoints you have set up in the corresponding `server.py` files.
+    *   The gateway is explicitly using http (not https) protocol for the Inspector and Claude integration.
+   *   **Restart Claude Desktop** after updating this file for the changes to take effect.
 
-### **If `mcp` Module is Not Found:**
-1. Confirm `mcp` is installed:
+**4. Starting and Using the MCP Inspector**
+
+Now we can run and use the inspector to test out the servers and debug.
+
+   **Open a new terminal (Terminal 4):**
    ```bash
-   pip list | grep mcp
-   ```
-2. Reinstall it if necessary:
-   ```bash
-   pip install mcp
-   ```
-
----
-
-### **If VS Code is Misaligned:**
-1. Open Command Palette (`Cmd + Shift + P`).
-2. Select `Python: Select Interpreter` and choose `Python 3.11.1 ('venv')`.
-
----
-
-### **If Gateway or Servers Fail to Start:**
-1. Check the logs in the terminal for detailed error messages.
-2. Ensure all dependencies are installed in the active virtual environment.
-3. Manually run the failing script with Python to isolate issues:
-   ```bash
-   python /path/to/script.py
+   cd mcp-agent-router/gateway-agent
+   source ../venv/bin/activate
+   npx @modelcontextprotocol/inspector http://localhost:8000/mcp/v1
    ```
 
----
+   **Explanation:**
+    * We open a *new* terminal in `mcp-agent-router/gateway-agent` directory.
+    *   We activate the same environment as for the gateway server.
+   *   The command starts the MCP Inspector and attempts to connect directly to your gateway agent's HTTP endpoint. The inspector UI will open in your default browser.
 
-## **5. Cleanup and Restart**
-To restart the entire project setup from scratch:
-1. Stop all servers (`Ctrl+C` in each terminal).
-2. Deactivate the virtual environment:
-   ```bash
-   deactivate
-   ```
-3. Delete existing virtual environments and recreate them following **Step 2**.
+**5. Interacting with MCP Inspector**
 
----
+*   **Verify connection:**
+   * Once the Inspector UI loads, you will see three fields for Command, Arguments and Environment Variables. If the client was able to connect to the server, the box with the server name (e.g. gateway-agent) will show **connected**. If it fails to connect, it will say 'failed'. You may need to click the Format button in the 'Commands' section to get the servers to connect.
+*   **Examine available tools:**
+    *   Click on the **Tools** tab to see tools your gateway agent offers (e.g., `route_task`). If the connection is made successfully, you will see that a tool called `route_task` is now available in the inspector.
+*   **Test routing:**
+    *   Use the Inspector to call the `route_task` tool with various `user_input` queries. For example:
+        *   `{"user_input": "How much should I weigh?"}` (should go to server A)
+        *   `{"user_input": "What is my next project deadline?"}` (should go to server B)
+    *   Observe the responses and check terminal output for which server was called. You can also look in your server log files in the `/shared` directory.
+*   **Examine all communication**: You can see all communication between the Client and the server as it happens, including JSON messages that the client is sending to the server and what the server is sending back to the client. 
+   
+   **Explanation:**
+   *   The MCP Inspector UI lets you interact with the server and inspect the messages sent and received.
+   *   By using Inspector to test the routing, you can verify that the `route_task` tool is functioning correctly as you have described it.
 
-This cheat-sheet should serve as a reliable guide for running your `mcp-agent-router` project, including all the tricky steps we encountered during the setup. Let me know if there’s anything else you’d like added!
+**6. Interacting with Claude Desktop**
+
+After completing these steps, Claude Desktop should be able to send queries through your gateway server.
+
+   **To test with Claude Desktop:**
+*  **Ensure you've restarted Claude Desktop** after changing `claude_desktop_config.json`.
+* In Claude Desktop, try entering prompts that correspond to tools provided by your servers:
+     *  For example, if you have configured a tool on `server-a` to get health information, entering "how much should I weigh?" should be routed to `server-a`. The response should come through your `gateway-agent`, then to Claude Desktop, and be displayed.
+    *  Similarly, a query like "what are my deadlines this week" should go to `server-b`
+    *   The response from the servers will be displayed in Claude's conversation history.
+
+**Troubleshooting:**
+
+*   **If `uv` is using wrong Python Version:** Follow the tips in the "cheat-sheet" you provided, specifically ensuring the `.venv` link is correct, and that the `VIRTUAL_ENV` variable is set correctly, and that VS code is picking the correct virtual environment.
+*   **If `mcp` module is not found:** Again, as in your "cheat sheet" check if the `mcp` module is installed using `pip list | grep mcp`. Reinstall it using `pip install mcp` if necessary.
+*   **If Servers or Gateway fail to Start**:
+    *   Look at console logs for error messages in each terminal.
+    *   Check that all dependencies are installed in the active virtual environments.
+    *   Manually run each failing script in its own terminal with `python /path/to/script.py` to isolate issues.
+
+**Key Points to Understand**
+
+*   **Virtual Environments are Crucial**: Make sure each terminal uses the virtual environment created, as described in **Step 2**.
+*   **Port and URL Consistency**:  Ensure the port numbers in your `claude_desktop_config.json` match the actual ports your servers are running on and that the URL paths `/mcp/v1` are consistent for each server.
+*   **`uv` for Package Management**: This guide uses `uv` for dependency and server execution as you specified, be sure to use that in all cases for maximum compatibility.
+*   **Inspector for Visibility:** The MCP Inspector is very useful for examining the messages being sent and received, this can help you pinpoint issues in routing, or data handling. Be sure to use the Inspector UI as described in **Step 5.**
+*   **Claude for Testing:** Claude Desktop's MCP support allows for real-world end-to-end testing of the various tools you are creating, using the client as you would in a user scenario.
+*   **Logging:** Ensure that your server and gateway agent implementations use Python’s `logging` module, outputting to `stderr` so you can check logs for errors and information in the terminal.
+
+Note: Be sure to check the log files that are output into the shared folder for debugging. Also use the Inspector to make sure that you have each server connecting and correctly routing messages as designed.

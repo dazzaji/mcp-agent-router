@@ -150,7 +150,7 @@ def log_json(data):
         f.write(json.dumps(data, indent=2)+'\n')
 
 def log_text(txt):
-    with open('/shared/personal-trainer.log') as f:
+    with open('/shared/personal-trainer.log', 'a') as f:
         f.write(txt + '\n')
 
 def load_personal_trainer():

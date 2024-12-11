@@ -112,7 +112,7 @@ async def call_tool(
     else:
         target_server = SERVER_B  # Default server
 
-    result = await _run_tool_on_server(target_server, user_input)
+    result = await _run_tool_on_server(target_server, user_input)  # replace this function with the tool call from talk.py in ask_mcp_server in in talk.py n server a)
     
     return [TextContent(type="text", text = result.content[0].text)]
 

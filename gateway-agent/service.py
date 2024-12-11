@@ -25,16 +25,17 @@ from mcp.types import (
     TextContent,
     Tool,
 )
-
+from pydantic import BaseModel, Field, AnyUrl
+from mcp.shared.exceptions import McpError
 
 # Configuration for Server A and Server B
-SERVER_A_CONFIG = {
-    "command": "python",
-    "args": ["-m", "physical_productivity_agent"],  # Replace with actual module name
+SERVER_A = {
+    "url": "http://localhost:5000/mcp/v1",  # URL for Server A's MCP endpoint
+    "tool_name": "ask_personal_trainer",      # Tool name on Server A
 }
-SERVER_B_CONFIG = {
-    "command": "python",
-    "args": ["-m", "professional_productivity_agent"],  # Replace with actual module name
+SERVER_B = {
+    "url": "http://localhost:5001/mcp/v1", # URL for Server B's MCP endpoint (replace with actual if different)
+    "tool_name": "handle_professional_task",  # Tool name on Server B (replace with actual)
 }
 
 # Set up logging
@@ -44,56 +45,6 @@ logger = logging.getLogger(__name__)
 # Initialize the MCP server
 server = Server("gateway-agent")
 
-class RouteArgs(BaseModel):
-    user_input: str = Field(..., description="User's productivity-related query or task.")
-
-@server.list_prompts()
-async def list_prompts() -> list[Prompt]:
-    return [
-        Prompt(
-            name="route",
-            description="Route a productivity task to the appropriate agent.",
-            arguments=[
-                PromptArgument(
-                    name="user_input",
-                    description="The user's input or query related to productivity.",
-                    required=True,
-                ),
-            ],
-        )
-    ]
-
-
-@server.get_prompt()
-async def get_prompt(name: str, arguments: dict | None) -> types.GetPromptResult:
-    if name != "route":
-        raise ValueError(f"Unknown prompt: {name}")
-
-    user_input = (arguments or {}).get("user_input")
-    if not user_input:
-        raise ValueError("Missing 'user_input' argument.")
-
-
-    return types.GetPromptResult(
-        description=f"Routing prompt for user input: {user_input}",
-        messages=[
-            types.PromptMessage(
-                role="user",
-                content=types.TextContent(
-                    type="text",
-                    text=f"""Decide whether the following user input relates to physical productivity (Server A) or professional/work productivity (Server B):
-                    
-                    User Input: "{user_input}"
-                    
-                    Respond with either "Server A" or "Server B".
-                    """,
-                ),
-            )
-        ],
-    )
-
-
-
 
 @server.list_tools()
 async def list_tools() -> ListToolsResult:
@@ -102,53 +53,68 @@ async def list_tools() -> ListToolsResult:
             Tool(
                 name="route_task",
                 description="""Routes a user's productivity-related query or task to the appropriate agent (Server A or Server B).""",
-                inputSchema=RouteArgs.model_json_schema(),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "user_input": {
+                            "type": "string",
+                            "description": "User's productivity-related query or task.",
+                        },
+                    },
+                    "required": ["user_input"],
+                },
             ),
         ]
     )
 
 
-async def _run_tool_on_server(server_config: Dict[str, Any], tool_name: str, arguments: Dict[str, Any]):
-    from mcp.client import ClientSession, stdio_client, StdioServerParameters
+async def _run_tool_on_server(server_config: Dict[str, Any], user_input: str) -> CallToolResult:
+    """Runs the specified tool on the given server with the provided user input."""
+
+    from mcp.client import ClientSession, sse_client
     
-    server_params = StdioServerParameters(command=server_config["command"], args=server_config["args"])
-    async with stdio_client(server_params) as (read, write):
+    async with sse_client(server_config["url"]) as (read, write):
         async with ClientSession(read, write) as session:
             await session.initialize()
-            return await session.call_tool(tool_name, arguments)
-            
+
+            try:
+                result = await session.call_tool(
+                    server_config["tool_name"], {"body": user_input}
+                )
+                return result
+            except McpError as e:
+                return e.error
+            except Exception as e:
+                logger.error(f"Error running tool on server: {e}")
+                raise McpError(f"Error running tool on server: {e}")
+
+
 
 @server.call_tool()
 async def call_tool(
     name: str, arguments: dict
 ) -> Sequence[TextContent | ImageContent | EmbeddedResource]:
+    """Routes the task to the appropriate server and tool."""
 
     if name != "route_task":
         raise ValueError(f"Unknown tool: {name}")
+
 
     user_input = arguments.get("user_input")
     if not user_input:
         raise ValueError("Missing 'user_input' argument.")
 
-    # Basic routing logic (replace with your actual routing criteria)
+    # Routing logic based on keywords (customize as needed)
     if any(keyword in user_input.lower() for keyword in ["weight", "sleep", "exercise", "health"]):
-        target_server = SERVER_A_CONFIG
-        tool_to_call = "handle_physical_task"  # Tool name on server A
+        target_server = SERVER_A
     elif any(keyword in user_input.lower() for keyword in ["work", "meeting", "deadline", "project"]):
-        target_server = SERVER_B_CONFIG
-        tool_to_call = "handle_professional_task"  # Tool name on server B
+        target_server = SERVER_B
     else:
-        # Default to server B if no specific keywords are found
-        target_server = SERVER_B_CONFIG
-        tool_to_call = "handle_professional_task"
+        target_server = SERVER_B  # Default server
 
-    try:
-        result = await _run_tool_on_server(target_server, tool_to_call, {"user_input": user_input})
-        return result.content
-    except Exception as e:
-        logger.error(f"Error routing task to server: {e}")
-        raise McpError(f"Error routing task: {e}")
-
+    result = await _run_tool_on_server(target_server, user_input)
+    
+    return [TextContent(type="text", text = result.content[0].text)]
 
 async def run():
     """Run the gateway agent server."""

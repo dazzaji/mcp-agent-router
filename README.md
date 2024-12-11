@@ -5,4 +5,4 @@ This is a primative multi-agent modular initialization capability test prototype
 The second server will be a decider and will choose which is the best next server.
 
 
-[include all documentation for MCP]
+[include all documentation for MCP] 

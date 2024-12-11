@@ -407,4 +407,199 @@ services:
     npx @modelcontextprotocol/inspector http://gateway-agent:8000/mcp/v1 # Note the protocol is now http
     ```
 
+
+-------------------
+
+# Running the Project 
+
+(replace paths with correct paths on your machine)
+
+Certainly! Below is a comprehensive **cheat-sheet** capturing all the steps needed to set up and run the `mcp-agent-router` project successfully, taking into account everything we learned during troubleshooting:
+
+---
+
+# **MCP-Agent-Router Project Setup and Execution Cheat-Sheet**
+
+## **1. Initial Setup**
+### **Step 1: Clone the Repository**
+If you haven’t already cloned the project:
+```bash
+git clone <repository-url>
+cd mcp-agent-router
+```
+
+---
+
+### **Step 2: Set Up the Python Virtual Environment**
+1. Remove any conflicting virtual environments if they exist:
+   ```bash
+   rm -rf .venv venv
+   ```
+
+2. Create a new virtual environment using Python 3.11:
+   ```bash
+   /Library/Frameworks/Python.framework/Versions/3.11/bin/python3.11 -m venv ./venv
+   ```
+
+3. Link `venv` to `.venv` to satisfy tools like `uv`:
+   ```bash
+   ln -s venv .venv
+   ```
+
+4. Activate the virtual environment:
+   ```bash
+   source ./venv/bin/activate
+   ```
+
+5. Confirm the Python version:
+   ```bash
+   python --version
+   ```
+   The output should be:
+   ```
+   Python 3.11.1
+   ```
+
+6. Install the required dependencies:
+   ```bash
+   pip install flask anthropic requests python-dotenv uv mcp
+   ```
+
+---
+
+### **Step 3: Configure `.python-version`**
+If the project contains a `.python-version` file, ensure it matches Python 3.11:
+```bash
+echo "3.11" > .python-version
+```
+
+---
+
+## **2. Running the Project**
+
+### **Step 4: Start Server A**
+1. Open a new terminal tab or window in VS Code.
+2. Activate the virtual environment:
+   ```bash
+   source ./venv/bin/activate
+   ```
+3. Navigate to the `server-a` directory:
+   ```bash
+   cd server-a
+   ```
+4. Run the server:
+   ```bash
+   python server.py
+   ```
+
+---
+
+### **Step 5: Start Server B**
+1. Open another terminal tab or window.
+2. Activate the virtual environment:
+   ```bash
+   source ./venv/bin/activate
+   ```
+3. Navigate to the `server-b` directory:
+   ```bash
+   cd server-b
+   ```
+4. Run the server:
+   ```bash
+   python server.py
+   ```
+
+---
+
+### **Step 6: Start the Gateway**
+1. Open another terminal tab or window.
+2. Ensure the virtual environment is active:
+   ```bash
+   source ./venv/bin/activate
+   ```
+3. Run the gateway:
+   ```bash
+   uv run /Users/dazzagreenwood/mcp-agent-router/gateway-agent/service.py
+   ```
+
+---
+
+## **3. Testing and Verification**
+
+### **Step 7: Verify the Setup**
+1. **Check Each Server**:
+   - Confirm that `server-a`, `server-b`, and the gateway server are running without errors.
+   - Each server should be displaying logs or listening for requests.
+
+2. **Test with the Client (if applicable)**:
+   If the project includes a client like **Claude Desktop**, connect it to the gateway:
+   - Edit the `claude_desktop_config.json` file to include:
+     ```json
+     {
+       "mcpServers": {
+         "gateway": {
+           "command": "uv",
+           "args": ["run", "/Users/dazzagreenwood/mcp-agent-router/gateway-agent/service.py"]
+         }
+       }
+     }
+     ```
+   - Restart Claude Desktop.
+   - Test the client by interacting with the connected servers.
+
+---
+
+## **4. Troubleshooting Tips**
+### **If `uv` Uses the Wrong Python Version:**
+1. Ensure `.venv` is linked to `venv`:
+   ```bash
+   ln -s venv .venv
+   ```
+2. Ensure the `VIRTUAL_ENV` variable points to the correct environment:
+   ```bash
+   export VIRTUAL_ENV=$(pwd)/venv
+   ```
+
+---
+
+### **If `mcp` Module is Not Found:**
+1. Confirm `mcp` is installed:
+   ```bash
+   pip list | grep mcp
+   ```
+2. Reinstall it if necessary:
+   ```bash
+   pip install mcp
+   ```
+
+---
+
+### **If VS Code is Misaligned:**
+1. Open Command Palette (`Cmd + Shift + P`).
+2. Select `Python: Select Interpreter` and choose `Python 3.11.1 ('venv')`.
+
+---
+
+### **If Gateway or Servers Fail to Start:**
+1. Check the logs in the terminal for detailed error messages.
+2. Ensure all dependencies are installed in the active virtual environment.
+3. Manually run the failing script with Python to isolate issues:
+   ```bash
+   python /path/to/script.py
+   ```
+
+---
+
+## **5. Cleanup and Restart**
+To restart the entire project setup from scratch:
+1. Stop all servers (`Ctrl+C` in each terminal).
+2. Deactivate the virtual environment:
+   ```bash
+   deactivate
+   ```
+3. Delete existing virtual environments and recreate them following **Step 2**.
+
+---
+
+This cheat-sheet should serve as a reliable guide for running your `mcp-agent-router` project, including all the tricky steps we encountered during the setup. Let me know if there’s anything else you’d like added!
 This will connect the inspector to the gateway-agent and present a URL for you to access the inspector UI. From the UI, you should be able to call tools exposed by gateway agent, which will in turn route requests to the appropriate downstream servers.  The debug=True parameters we set earlier will help to pinpoint where issues are arising.  Make sure that servers A and B are accessible on port 5000 and 5001 on your local machine, respectively.  If you use Docker and don't expose these ports on host network (via the `ports` configuration in docker-compose), you'll need to attach to the network the containers create with the following command so that the DNS entries for the services are present: `docker network connect <networkname> <containername>`

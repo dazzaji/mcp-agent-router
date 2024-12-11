@@ -33,7 +33,7 @@ from mcp.shared.exceptions import McpError
 
 # Configuration for Server A and Server B (using URLs for HTTP communication)
 SERVER_A = {
-    "url": "http://localhost:5000/mcp/v1", # URL of Server A
+    "url": "http://localhost:5010/mcp/v1", # URL of Server A
     "tool_name": "ask_personal_trainer", # Tool name on Server A
 }
 SERVER_B = {

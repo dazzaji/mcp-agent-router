@@ -1,3 +1,5 @@
+import sys
+print("Python path:", sys.executable)
 import asyncio
 import json
 import logging

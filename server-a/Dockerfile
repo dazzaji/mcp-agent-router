@@ -5,4 +5,10 @@ FROM ubuntu:22.04
 RUN apt-get update -y && apt-get install -y \
     python3 python3-dev socat curl wget python3-pip
 
-RUN pip install flask anthropic requests
+RUN pip install flask anthropic requests python-dotenv
+
+WORKDIR /app
+ADD . /app
+
+CMD ["python3", "/app/server.py"]
+

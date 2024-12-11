@@ -145,6 +145,14 @@ class HealthTrainer:
 }
 '''
 
+def log_json(data):
+    with open('/shared/personal-trainer.log', 'a') as f:
+        f.write(json.dumps(data, indent=2)+'\n')
+
+def log_text(txt):
+    with open('/shared/personal-trainer.log') as f:
+        f.write(txt + '\n')
+
 def load_personal_trainer():
     trainer = HealthTrainer()
     trainer.user_profile = {
@@ -169,25 +177,27 @@ def run_personal_trainer(data):
 @app.route('/mcp/v1', methods=['POST'])
 def health():
     data = request.get_json()
-    print('==== NEW MCP REQUEST ====')
-    print(json.dumps(data, indent=2))
+    log_text('\n\n======== INCOMING MCP RESPONSE ========\n\n')
+    log_json(data)
 
     method_name = data.get('params',{}).get('name')
     if method_name == 'ask_personal_trainer':
         res = run_personal_trainer(data)
-
-    return jsonify({
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": {
-    "content": [
-      {
-        "type": "text",
-        "text": f"Personal Trainer Says: {res}"
-      }
-    ]
-  }
-})
+    resp = {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": f"Personal Trainer Says: {res}"
+              }
+            ]
+          }
+        }
+    log_text('\n\n======= RESPONDING WITH MCP RESPONSE =======')
+    log_json(resp)
+    return jsonify()
 
 
 if __name__ == '__main__':

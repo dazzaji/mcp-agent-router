@@ -100,3 +100,309 @@ To use your MCP servers with Claude Desktop:
 Now you should be able to interact with your gateway agent via Claude's slash commands or other UI elements provided by Claude Desktop to use MCP tools. You can test the routing by entering queries that should be directed to different servers.
 
 With these steps, you should be able to run your MCP project, inspect server communications with the Inspector, and integrate your gateway agent with Claude Desktop! Let me know if you encounter any issues, and I'll help troubleshoot.
+
+
+------
+
+# Use Inspector to See What is Happening Under the Hood
+
+Okay, here's a step-by-step guide to run your project and inspect the MCP traffic using the Inspector. We'll use Docker Compose to simplify the process since you have Dockerfiles. This approach ensures consistent environment setup and easier management of multiple services.
+
+**Prerequisites:**
+
+1.  **Docker Desktop:** Make sure you have Docker Desktop installed and running.
+2.  **Docker Compose:** Verify Docker Compose is installed. You can check with `docker compose version`. If not, install it according to the instructions for your OS.
+3.  **MCP Inspector:** Ensure MCP Inspector is installed globally: `npm install -g @modelcontextprotocol/inspector`
+4. **Anthropic API Key:** You'll need a valid Anthropic API key for both Server A and Server B (as they use Claude). Set this in an `.env` file in both the `server-a` and `server-b` directories. Note that your `.gitignore` is set up correctly to ignore `.env` files.
+5. **Gemini API Key:** Similarly set up the `GEMINI_API_KEY` for the Gemini server in an `.env` file in the root of the project
+
+**Steps:**
+
+1. **Prepare Server A and Server B:**
+
+* **User Profile Data:** Create a `user_profile.json` file in both `server-a` and `server-b` with the user profile information you provided for each (health and professional profiles, respectively). Format this data as JSON. 
+
+Here's how those files should be structured: 
+
+`server-a/user_profile.json`:
+
+```json
+{
+  "name": "John Doey",
+  "date_of_birth": "August 15, 1997",
+  "gender": "Male",
+  "height": "5'8\"",
+  "weight": "150 lbs",
+  "bmi": 22.7,
+  "body_fat_percentage": 23.5,
+  "muscle_mass": "64.6 lbs",
+  "bone_mass": "7.1 lbs",
+  "last_measured_body_composition": "December 1, 2024",
+  "blood_pressure": "118/75 mmHg",
+  "heart_rate": 68,
+  "respiratory_rate": 14,
+  "last_measured_vital_signs": "December 9, 2024",
+  "weight_management_target": "150 lbs",
+  "weight_management_deadline": "June 30, 2025",
+  "weight_management_type": "Maintenance",
+  "daily_steps": 8000,
+  "weekly_exercise": "150 minutes",
+  "weekly_workouts": 3,
+  "daily_caloric_target": 2200,
+  "macronutrient_breakdown": {
+    "protein": "2.8 oz (80g)",
+    "carbohydrates": "8.8 oz (250g)",
+    "fats": "2.6 oz (73g)"
+  },
+  "current_conditions": [
+    {
+      "name": "Computer Vision Syndrome",
+      "diagnosed": "September 15, 2023",
+      "status": "Active",
+      "medications": null
+    },
+    {
+      "name": "Mild Anxiety",
+      "diagnosed": "March 20, 2023",
+      "status": "Active",
+      "treatment": {
+        "type": "Meditation App Subscription",
+        "duration": "15 minutes",
+        "frequency": "Daily",
+        "started": "March 25, 2023",
+        "ongoing": true
+      }
+    }
+  ],
+  "allergies": [
+    {
+      "name": "Tree Pollen",
+      "severity": "Mild",
+      "symptoms": ["Sneezing", "Itchy eyes"]
+    }
+  ],
+  "family_history": {
+    "type_2_diabetes": "Paternal grandfather",
+    "hypertension": "Maternal grandmother"
+  },
+  "preferences": {
+    "measurement_system": "Imperial",
+    "dietary_restrictions": ["Vegetarian", "Low-caffeine"],
+    "exercise_preferences": ["Yoga", "Running", "Home workouts"],
+    "reminders": true,
+    "progress_updates": true,
+    "health_tips": true
+  },
+  "last_updated": "December 10, 2024"
+}
+```
+
+`server-b/user_profile.json`:
+
+```json
+{
+  "name": "John Doey",
+  "user_id": "JP_AI_2024",
+  "current_role": "Machine Learning Engineer II",
+  "industry": "Artificial Intelligence",
+  "years_of_experience": 2,
+  "preferred_work_style": "Hybrid",
+  "current_position": {
+    "title": "Machine Learning Engineer II",
+    "band": "IC2",
+    "start_date": "January 15, 2024"
+  },
+  "technical_skills": [
+    {
+      "name": "PyTorch",
+      "proficiency": "Advanced",
+      "last_used": "December 9, 2024"
+    },
+    {
+      "name": "LLM Fine-tuning",
+      "proficiency": "Intermediate",
+      "last_used": "December 9, 2024"
+    },
+    {
+      "name": "MLOps",
+      "proficiency": "Intermediate",
+      "last_used": "December 8, 2024"
+    }
+  ],
+  "soft_skills": [
+    {
+      "name": "Technical Communication",
+      "self_assessment": 8,
+      "last_assessed": "November 30, 2024"
+    },
+    {
+      "name": "Project Management",
+      "self_assessment": 7,
+      "last_assessed": "November 30, 2024"
+    }
+  ],
+  "time_management": {
+    "preferred_hours": "9:30 AM - 6:30 PM (PST)",
+    "focus_time_blocks": {
+      "morning": "120-minute block"
+    }
+  },
+  "meeting_preferences": {
+    "maximum_daily_meetings": 4,
+    "preferred_duration": "30 minutes",
+    "buffer_time": "15 minutes"
+  },
+  "professional_goals": {
+    "short_term_objectives": [
+      {
+        "name": "LLM Evaluation Framework Project",
+        "role": "Project Lead",
+        "target_date": "March 30, 2025",
+        "status": "In Progress",
+        "type": "Project"
+      },
+      {
+        "name": "MLOps Certification",
+        "target_date": "February 28, 2025",
+        "status": "In Progress",
+        "type": "Certification"
+      }
+    ],
+    "long_term_objectives": {
+      "primary_goal": "Senior ML Engineer Role",
+      "target_year": 2026,
+      "key_milestones": [
+        "Lead 2 major technical initiatives (Due: December 31, 2025)",
+        "Develop team mentorship experience",
+        "Establish technical thought leadership"
+      ]
+    }
+  },
+    "development_activities": {
+    "current_projects": [
+      {
+        "name": "LLM Evaluation Framework",
+        "role": "Technical Lead",
+        "skills": ["ML Architecture", "Team Leadership"],
+        "visibility": "Company-wide"
+      },
+      {
+        "name": "Model Optimization Initiative",
+        "role": "Individual Contributor",
+        "skills": ["Performance Tuning", "MLOps"],
+        "visibility": "Department"
+      }
+    ],
+    "training_programs": [
+      {
+        "name": "MLOps Certification Program",
+        "provider": "Major Cloud Provider",
+        "status": "In Progress",
+        "expected_completion": "Q1 2025"
+      },
+      {
+        "name": "Technical Leadership Workshop",
+        "provider": "Internal L&D",
+        "status": "Planned",
+        "start_date": "January 2025"
+      }
+    ]
+  },
+  "learning_and_growth": {
+    "areas_of_focus": {
+      "technical": ["Large Language Models", "Distributed Systems", "ML Infrastructure"],
+      "leadership": ["Team Management", "Technical Project Planning", "Stakeholder Communication"]
+    },
+    "resources": [
+      "Internal ML Engineering Wiki",
+      "Technical Conference Presentations",
+      "Industry Research Papers",
+      "Team Knowledge Sharing Sessions"
+    ]
+  },
+  "professional_network_development": {
+    "current_activities": [
+      "Regular 1:1s with Senior Engineers",
+      "Monthly ML Community Meetups",
+      "Internal Tech Talks Participant",
+      "Open Source Contributions"
+    ],
+    "mentorship": {
+      "seeking_in": ["Technical Leadership", "Project Management"],
+      "providing_in": ["PyTorch", "LLM Implementation"]
+    }
+  },
+  "preferences": {
+    "learning_style": ["Hands-on Implementation", "Documentation Creation", "Collaborative Problem-solving"],
+    "growth_areas": ["System Architecture Design", "Team Leadership", "Technical Writing"],
+    "goal_reminders": true,
+    "networking_opportunities": true,
+    "learning_recommendations": true
+  },
+  "last_updated": "December 10, 2024"
+}
+```
+
+
+
+* **Install Dependencies:** Make sure all the servers have the needed dependencies:
+
+  ```bash
+  cd server-a
+  pip install -r requirements.txt # Install dependencies for server-a
+  cd ../server-b
+  pip install -r requirements.txt # Install dependencies for server-b
+  cd ../gateway-agent
+  pip install -r requirements.txt # Install dependencies for gateway-agent
+  cd ../gemini-server
+  pip install -r requirements.txt # Install dependencies for gemini-server
+  cd .. # Go back to root
+  ```
+  Make sure to create `requirements.txt` files in each directory, containing the libraries each uses. The root `requirements.txt` can include `mcp`.  A simple way to create these files is by activating the relevant virtual environment, then using `pip freeze > requirements.txt` in each project directory.
+
+2. **Define the Docker Network (Optional but recommended):** If you're not using host network mode, you need to create the docker network in the `docker-compose.yaml` file, so that the gateway agent can discover and communicate with Server A and Server B. Here's how:
+
+```yaml
+services:
+  # ... (your service definitions)
+
+networks:
+  mcp-network: # Give your network a name
+
+```
+
+Then add the network to each of the Docker container specifications:
+
+```yaml
+services:
+  gateway-agent:
+    # ... other settings
+    networks:
+      - mcp-network
+
+  server-a:
+    # ... other settings
+    networks:
+      - mcp-network
+
+  server-b:  # Added server-b
+    # ... similar to server-a
+    networks:
+      - mcp-network
+```
+
+3.  **Run with Docker Compose:** In your project root, run:
+
+    ```bash
+    docker compose up --build
+    ```
+
+    This builds and starts all servers in the background with appropriate port mapping and shared volume.  Now you should have all the components (servers, shared volume) set up in Docker containers. This is generally a more reliable approach for consistent execution since you also provided Dockerfiles.
+
+4.  **Connect with MCP Inspector:** In a new terminal, run:
+
+    ```bash
+    npx @modelcontextprotocol/inspector http://gateway-agent:8000/mcp/v1 # Note the protocol is now http
+    ```
+
+This will connect the inspector to the gateway-agent and present a URL for you to access the inspector UI. From the UI, you should be able to call tools exposed by gateway agent, which will in turn route requests to the appropriate downstream servers.  The debug=True parameters we set earlier will help to pinpoint where issues are arising.  Make sure that servers A and B are accessible on port 5000 and 5001 on your local machine, respectively.  If you use Docker and don't expose these ports on host network (via the `ports` configuration in docker-compose), you'll need to attach to the network the containers create with the following command so that the DNS entries for the services are present: `docker network connect <networkname> <containername>`

@@ -6,6 +6,7 @@ import sys
 from typing import Any, Dict, Sequence
 
 import requests  # Import requests
+from typing import Any, Dict, Sequence, List
 from mcp.server import NotificationOptions, Server
 from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
@@ -49,9 +50,25 @@ server = Server("gateway-agent")
 
 
 @server.list_tools()
-async def list_tools() -> ListToolsResult:
-    # ... (No changes to list_tools)
-    pass  # Placeholder for brevity
+async def list_tools() -> List[Tool]:
+    """Lists available tools for the gateway agent."""
+    return [
+        Tool(
+            name="route_task",
+            description="Routes a user's productivity-related query or task to the appropriate agent.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "user_input": {
+                        "type": "string",
+                        "description": "User's productivity-related query or task.",
+                    },
+                },
+                "required": ["user_input"],
+            },
+        )
+    ]
+
 
 
 def ask_mcp_server(server_url: str, tool_call: str, data: str) -> str: # Add type hints
@@ -66,9 +83,15 @@ def ask_mcp_server(server_url: str, tool_call: str, data: str) -> str: # Add typ
         },
     }
     try:
-        response = requests.post(server_url, json=body).json()
-        print(json.dumps(response, indent=4))
-        return response.get("result",{}).get("content",[])[0].get('text')
+        print("Now sending request to", server_url, file=sys.stderr)
+        response = requests.post(server_url, json=body)
+        print(response, file=sys.stderr)
+        print(response.text, file=sys.stderr)
+        data = response.json()
+        print('got data', data, file=sys.stderr)
+        final = data.get("result",{}).get("content",[])[0].get('text')
+        print('final',final,file=sys.stderr)
+        return final
 
     except requests.exceptions.RequestException as e:
         raise McpError(INTERNAL_ERROR, f"Error communicating with server: {e}")
@@ -101,20 +124,43 @@ async def call_tool(
     try:
         # Use the ask_mcp_server function to make the tool call
         result = ask_mcp_server(target_server["url"], target_server["tool_name"], user_input)
-        return [TextContent(type="text", text=result)]  # Correctly wrap in TextContent
+        return [TextContent(type="text", text=result)]
+
     except McpError as e:
         raise
     except Exception as e:
         logger.error(f"Error routing task to server: {e}")
         raise McpError(f"Error routing task: {e}")
 
-async def run():
-    """Run the gateway agent server."""
-   # ... (No changes in run() function)
-    pass
+async def run_server() -> None:
+    """Runs the gateway agent server."""
+    try:
+        async with stdio_server() as (read_stream, write_stream):
+            await server.run(
+                read_stream,
+                write_stream,
+                InitializationOptions(
+                    server_name="gateway_agent",
+                    server_version="0.1.0",
+                    capabilities=server.get_capabilities(
+                        notification_options=NotificationOptions(),
+                        experimental_capabilities={},
+                    ),
+                ),
+            )
+    except Exception as e:
+        logger.error(f"Server error: {e}")
+        raise
 
-def main():
-    anyio.run(run)
+def main() -> None:
+    """Main entry point for the gateway agent service."""
+    try:
+        asyncio.run(run_server())
+    except KeyboardInterrupt:
+        logger.info("Server shutdown requested")
+    except Exception as e:
+        logger.error(f"Fatal error: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

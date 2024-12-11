@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, request
+import sys
 
 import json
 
@@ -125,7 +126,7 @@ class HealthTrainer:
 
     def start_session(self, user_input):
         response = self.get_ai_response(user_input)
-        print("\nAI Trainer:", response)
+        print("\nAI Trainer:", response, file=sys.stderr)
         return response
 
 
@@ -148,10 +149,12 @@ class HealthTrainer:
 def log_json(data):
     with open('/shared/personal-trainer.log', 'a') as f:
         f.write(json.dumps(data, indent=2)+'\n')
+    print(json.dumps(data, indent=2), file=sys.stderr)
 
 def log_text(txt):
     with open('/shared/personal-trainer.log', 'a') as f:
         f.write(txt + '\n')
+    print(txt, file=sys.stderr)
 
 def load_personal_trainer():
     trainer = HealthTrainer()
@@ -197,7 +200,7 @@ def health():
         }
     log_text('\n\n======= RESPONDING WITH MCP RESPONSE =======')
     log_json(resp)
-    return jsonify()
+    return jsonify(resp)
 
 
 if __name__ == '__main__':

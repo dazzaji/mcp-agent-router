@@ -7,7 +7,7 @@ RUN apt-get update -y && apt-get install -y \
 
 # Use uv instead of pip
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/home/claude/.local/bin:${PATH}"
+ENV PATH="/root/.local/bin:${PATH}"
 
 WORKDIR /app
 ADD . /app

@@ -10,6 +10,16 @@ services:
     environment:
       - "ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}"
 
+  work-assistant:
+    build: server-b
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./shared:/shared
+    network_mode: "host"
+    environment:
+      - "ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}"
+
   gateway-agent:
     build: gateway-agent
     command:

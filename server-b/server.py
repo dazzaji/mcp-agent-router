@@ -151,7 +151,7 @@ def log_json(data):
         f.write(json.dumps(data, indent=2)+'\n')
 
 def log_text(txt):
-    with open('/shared/work-assistant.log') as f:
+    with open('/shared/work-assistant.log', 'a') as f:
         f.write(txt + '\n')
 
 def load_work_assistant():
@@ -182,8 +182,7 @@ def work():
     log_json(data)
 
     method_name = data.get('params',{}).get('name')
-    if method_name == 'ask_work_assistant':
-        res = run_work_assistant(data)
+    res = run_work_assistant(data)
     resp = {
           "jsonrpc": "2.0",
           "id": 1,
@@ -198,7 +197,7 @@ def work():
         }
     log_text('\n\n======= RESPONDING WITH MCP RESPONSE =======')
     log_json(resp)
-    return jsonify()
+    return jsonify(resp)
 
 
 if __name__ == '__main__':

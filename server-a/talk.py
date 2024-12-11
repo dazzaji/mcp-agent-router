@@ -31,7 +31,7 @@ def ask_mcp_server(server_url, tool_call, data):
       }
     }
     # Makes the http request
-    res = requests.post(f'{server_url}/mcp/v1', json=body) 
+    res = requests.post(f'{server_url}', json=body) 
     print(res.text)
     data = res.json()
 

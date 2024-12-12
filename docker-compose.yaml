@@ -3,7 +3,7 @@ services:
   personal-trainer:
     build: server-a
     ports:
-      - "5000:5000"
+      - "5010:5010"
     volumes:
       - ./shared:/shared
     network_mode: "host"

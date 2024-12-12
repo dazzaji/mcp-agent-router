@@ -169,4 +169,4 @@ After completing these steps, Claude Desktop should be able to send queries thro
 *   **Claude for Testing:** Claude Desktop's MCP support allows for real-world end-to-end testing of the various tools you are creating, using the client as you would in a user scenario.
 *   **Logging:** Ensure that your server and gateway agent implementations use Python’s `logging` module, outputting to `stderr` so you can check logs for errors and information in the terminal.
 
-Note: Be sure to check the log files that are output into the shared folder for debugging. Also use the Inspector to make sure that you have each server connecting and correctly routing messages as designed.
+Note: Be sure to check the log files that are output into the shared folder for debugging. Also use the Inspector to make sure that you have each server connecting and correctly routing messages as designed. 
